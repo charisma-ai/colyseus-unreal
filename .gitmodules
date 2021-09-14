@@ -1,0 +1,7 @@
+[submodule "Source/ThirdParty/json"]
+	path = Source/ThirdParty/json
+	url = https://github.com/nlohmann/json
+[submodule "Source/ThirdParty/msgpack"]
+	path = Source/ThirdParty/msgpack
+	url = https://github.com/msgpack/msgpack-c
+	branch = cpp_master
