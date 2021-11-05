@@ -4,6 +4,11 @@
 
 void Connection::Connect(const FString& Url)
 {
+	if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
+	{
+		FModuleManager::Get().LoadModule("WebSockets");
+	}
+
 	Socket = FWebSocketsModule::Get().CreateWebSocket(Url, "wss");
 
 	Socket->OnConnected().AddLambda(
