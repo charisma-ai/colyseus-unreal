@@ -35,4 +35,7 @@ public:
 	TFunction<void()> OnClose;
 	TFunction<void(const void* Data, SIZE_T Size, SIZE_T BytesRemaining)> OnMessage;
 	TFunction<void(const FString& message)> OnError;
+
+	// Properties
+	TArray<uint8> ReceiveBuffer;
 };

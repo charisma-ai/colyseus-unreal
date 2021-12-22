@@ -39,7 +39,27 @@ void Connection::Connect(const FString& Url)
 		{
 			if (this->OnMessage)
 			{
-				this->OnMessage(Data, Size, BytesRemaining);
+				// If there are bytes remaining in the message, we need to buffer the received data
+				// and wait until we receive a message with no bytes remaining.
+				// This is to prevent MsgPack from trying to deserialize partial messages.
+				if (BytesRemaining > 0)
+				{
+					this->ReceiveBuffer.Append(static_cast<const uint8*>(Data), Size);
+					return;
+				}
+
+				// Otherwise, this message was either received as a complete message, or in buffered chunks.
+				// If a complete message (else case), we can avoid the overhead of buffering.
+				if (this->ReceiveBuffer.Num() > 0)
+				{
+					this->ReceiveBuffer.Append(static_cast<const uint8*>(Data), Size);
+					this->OnMessage(static_cast<const void*>(this->ReceiveBuffer.GetData()), this->ReceiveBuffer.Num(), 0);
+					this->ReceiveBuffer.Empty();
+				}
+				else
+				{
+					this->OnMessage(Data, Size, 0);
+				}
 			}
 		});
 
