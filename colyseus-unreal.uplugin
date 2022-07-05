@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "Colyseus",
+	"Description": "Colyseus SDK for Unreal Engine",
+	"Category": "Multiplayer",
+	"CreatedBy": "Charisma Entertainment",
+	"CreatedByURL": "https://charisma.ai/",
+	"DocsURL": "https://github.com/charisma-ai/colyseus-unreal",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Modules": [
+		{
+			"Name": "ColyseusClient",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault"
+		}
+	]
+}
