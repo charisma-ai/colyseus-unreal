@@ -3,8 +3,14 @@
 #include <stdio.h>
 
 #include <iostream>
-#include <msgpack.hpp>
 #include <sstream>
+
+#pragma push_macro("check")
+#undef check
+
+#include <msgpack.hpp>
+
+#pragma pop_macro("check")
 
 class PatchObject
 {

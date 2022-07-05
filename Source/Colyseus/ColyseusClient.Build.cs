@@ -12,7 +12,10 @@ namespace UnrealBuildTool.Rules
 
         public ColyseusClient(ReadOnlyTargetRules Target) : base(Target)
         {
-            PublicDefinitions.Add("MSGPACK_USE_CPP03=1");
+            if (CppStandard < CppStandardVersion.Cpp17)
+            {
+                PublicDefinitions.Add("MSGPACK_USE_CPP03=1");
+            }
 
             PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
             bEnableExceptions = true;
