@@ -1,5 +1,5 @@
-cocos2d/
-build/
+Build/
+Binaries/
 
 # OSX - https://github.com/github/gitignore/blob/master/Global/OSX.gitignore
 .DS_Store

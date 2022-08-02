@@ -40,7 +40,7 @@ public:
 		{
 			if (bConsented)
 			{
-				unsigned char bytes[1] = {(int) Protocol::LEAVE_ROOM};
+				unsigned char bytes[1] = {(unsigned char) Protocol::LEAVE_ROOM};
 				ConnectionInstance->Send(bytes, sizeof(bytes));
 			}
 			else
@@ -59,7 +59,7 @@ public:
 
 	inline void Send(unsigned char Type)
 	{
-		unsigned char Message[2] = {(int) Protocol::ROOM_DATA, Type};
+		unsigned char Message[2] = {(unsigned char) Protocol::ROOM_DATA, Type};
 		ConnectionInstance->Send(Message, sizeof(Message));
 	}
 
@@ -69,13 +69,14 @@ public:
 		std::stringstream PackingStream;
 		msgpack::pack(PackingStream, Message);
 		std::string Encoded = PackingStream.str();
+		size_t EncodedLength = Encoded.length();
 
-		unsigned char* BytesToSend = new unsigned char[Encoded.length() + 2];
-		BytesToSend[0] = (int) Protocol::ROOM_DATA;
+		unsigned char* BytesToSend = new unsigned char[EncodedLength + 2];
+		BytesToSend[0] = (unsigned char) Protocol::ROOM_DATA;
 		BytesToSend[1] = Type;
-		FMemory::Memcpy(BytesToSend + 2, Encoded.c_str(), Encoded.length());
+		FMemory::Memcpy(BytesToSend + 2, Encoded.c_str(), EncodedLength);
 
-		ConnectionInstance->Send(BytesToSend, Encoded.length() + 2);
+		ConnectionInstance->Send(BytesToSend, EncodedLength + 2);
 
 		delete[] BytesToSend;
 	}
@@ -83,13 +84,14 @@ public:
 	void Send(const FString& Type)
 	{
 		const char* TypeBytes = TCHAR_TO_UTF8(*Type);
+		size_t TypeLength = strlen(TypeBytes);
 
-		unsigned char* BytesToSend = new unsigned char[2 + strlen(TypeBytes)];
-		BytesToSend[0] = (int) Protocol::ROOM_DATA;
+		unsigned char* BytesToSend = new unsigned char[2 + TypeLength];
+		BytesToSend[0] = (unsigned char) Protocol::ROOM_DATA;
 		BytesToSend[1] = Type.Len() | 0xa0;
-		FMemory::Memcpy(BytesToSend + 2, TypeBytes, sizeof(TypeBytes));
+		FMemory::Memcpy(BytesToSend + 2, TypeBytes, TypeLength);
 
-		ConnectionInstance->Send(BytesToSend, 2 + strlen(TypeBytes));
+		ConnectionInstance->Send(BytesToSend, 2 + TypeLength);
 
 		delete[] BytesToSend;
 	}
@@ -98,18 +100,20 @@ public:
 	void Send(const FString& Type, T Message)
 	{
 		const char* TypeBytes = TCHAR_TO_UTF8(*Type);
+		size_t TypeLength = strlen(TypeBytes);
 
 		std::stringstream PackingStream;
 		msgpack::pack(PackingStream, Message);
 		std::string Encoded = PackingStream.str();
+		size_t EncodedLength = Encoded.length();
 
-		unsigned char* BytesToSend = new unsigned char[2 + strlen(TypeBytes) + Encoded.length()];
-		BytesToSend[0] = (int) Protocol::ROOM_DATA;
+		unsigned char* BytesToSend = new unsigned char[2 + TypeLength + EncodedLength];
+		BytesToSend[0] = (unsigned char) Protocol::ROOM_DATA;
 		BytesToSend[1] = Type.Len() | 0xa0;
-		FMemory::Memcpy(BytesToSend + 2, TypeBytes, sizeof(TypeBytes));
-		FMemory::Memcpy(BytesToSend + 2 + strlen(TypeBytes), Encoded.c_str(), Encoded.length());
+		FMemory::Memcpy(BytesToSend + 2, TypeBytes, TypeLength);
+		FMemory::Memcpy(BytesToSend + 2 + TypeLength, Encoded.c_str(), EncodedLength);
 
-		ConnectionInstance->Send(BytesToSend, 2 + strlen(TypeBytes) + Encoded.length());
+		ConnectionInstance->Send(BytesToSend, 2 + TypeLength + EncodedLength);
 
 		delete[] BytesToSend;
 	}

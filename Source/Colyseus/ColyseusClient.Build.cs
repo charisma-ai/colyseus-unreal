@@ -44,7 +44,8 @@ namespace UnrealBuildTool.Rules
                     "Core",
                     "Json",
                     "JsonUtilities",
-                    "WebSockets"
+                    "WebSockets",
+                    "HTTP",
                     // ... add other public dependencies that you statically link with here ...
                 }
                 );
@@ -55,8 +56,6 @@ namespace UnrealBuildTool.Rules
                 {
                     "CoreUObject",
                     "Engine",
-                    "Slate",
-                    "SlateCore",
                     // ... add private dependencies that you statically link with here ...	
                 }
                 );
