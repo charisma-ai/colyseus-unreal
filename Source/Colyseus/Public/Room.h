@@ -27,7 +27,8 @@ public:
 	void Connect(const FString& Endpoint)
 	{
 		ConnectionInstance = MakeShared<Connection>();
-		ConnectionInstance->OnClose = std::bind(&Room::_onClose, this);
+		ConnectionInstance->OnClose =
+			std::bind(&Room::_onClose, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 		ConnectionInstance->OnError = std::bind(&Room::_onError, this, std::placeholders::_1);
 		ConnectionInstance->OnMessage =
 			std::bind(&Room::_onMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
@@ -52,7 +53,7 @@ public:
 		{
 			if (OnLeave)
 			{
-				OnLeave();
+				OnLeave(4000);
 			}
 		}
 	}
@@ -137,8 +138,8 @@ public:
 
 	// Callbacks
 	TFunction<void()> OnJoin;
-	TFunction<void()> OnLeave;
-	TFunction<void(const int&, const FString&)> OnError;
+	TFunction<void(int32 StatusCode)> OnLeave;
+	TFunction<void(int32 StatusCode, const FString& Message)> OnError;
 	TFunction<void(S*)> OnStateChange;
 	TMap<const FString, TFunction<void(const msgpack::object&)>> OnMessageHandlers;
 
@@ -151,11 +152,21 @@ public:
 	FString SerializerId;
 
 protected:
-	void _onClose()
+	bool bHasJoined = false;
+
+	void _onClose(int32 StatusCode, const FString& Reason, bool bWasClean)
 	{
+		if (!bHasJoined)
+		{
+			if (OnError)
+			{
+				OnError(StatusCode, Reason);
+			}
+		}
+
 		if (OnLeave)
 		{
-			OnLeave();
+			OnLeave(StatusCode);
 		}
 	}
 
@@ -185,7 +196,7 @@ protected:
 			case Protocol::JOIN_ROOM:
 			{
 #ifdef COLYSEUS_DEBUG
-				std::cout << "Colyseus.Room: join error" << std::endl;
+				std::cout << "Colyseus.Room: JOIN_ROOM" << std::endl;
 #endif
 
 				SerializerId = StdStringToFString(colyseus::schema::decodeString(Bytes, Iterator));
@@ -196,6 +207,7 @@ protected:
 					SerializerInstance->handshake(Bytes, Iterator->offset);
 				}
 
+				bHasJoined = true;
 				if (OnJoin)
 				{
 					OnJoin();
@@ -208,13 +220,14 @@ protected:
 			case Protocol::JOIN_ERROR:
 			{
 #ifdef COLYSEUS_DEBUG
-				std::cout << "Colyseus.Room: join error" << std::endl;
+				std::cout << "Colyseus.Room: ERROR" << std::endl;
 #endif
+				float ErrorCode = colyseus::schema::decodeNumber(Bytes, Iterator);
 				std::string Message = colyseus::schema::decodeString(Bytes, Iterator);
 
 				if (OnError)
 				{
-					OnError(0, StdStringToFString(Message));
+					OnError(Code, StdStringToFString(Message));
 				}
 				break;
 			}

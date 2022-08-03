@@ -124,15 +124,15 @@ private:
 				FString ProcessId = StdStringToFString(json["room"]["processId"].get<std::string>());
 
 				RoomInstance->OnError = [RoomInstance, Callback](const int& Code, const FString& Message) {
+					RoomInstance->OnJoin = nullptr;
 					TSharedPtr<MatchMakeError> Error(new MatchMakeError(Code, Message));
 					Callback(Error, nullptr);
 					RoomInstance->OnError = nullptr;
-					RoomInstance->OnJoin = nullptr;
 				};
 
 				RoomInstance->OnJoin = [RoomInstance, Callback]() {
-					Callback(nullptr, RoomInstance);
 					RoomInstance->OnError = nullptr;
+					Callback(nullptr, RoomInstance);
 					RoomInstance->OnJoin = nullptr;
 				};
 

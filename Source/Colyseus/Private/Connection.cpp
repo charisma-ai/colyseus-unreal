@@ -27,11 +27,6 @@ void Connection::Connect(const FString& Url)
 			{
 				this->OnError(message);
 			}
-
-			if (this->OnClose)
-			{
-				this->OnClose();
-			}
 		});
 
 	Socket->OnRawMessage().AddLambda(
@@ -68,7 +63,7 @@ void Connection::Connect(const FString& Url)
 		{
 			if (this->OnClose)
 			{
-				this->OnClose();
+				this->OnClose(StatusCode, Reason, bWasClean);
 			}
 		});
 

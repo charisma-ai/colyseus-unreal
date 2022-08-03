@@ -32,7 +32,7 @@ public:
 
 	// Callbacks
 	TFunction<void()> OnOpen;
-	TFunction<void()> OnClose;
+	TFunction<void(int32 StatusCode, const FString& Reason, bool bWasClean)> OnClose;
 	TFunction<void(const void* Data, SIZE_T Size, SIZE_T BytesRemaining)> OnMessage;
 	TFunction<void(const FString& message)> OnError;
 
