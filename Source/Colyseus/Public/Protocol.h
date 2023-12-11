@@ -1,5 +1,7 @@
 #pragma once
 
+namespace Colyseus
+{
 enum class Protocol : int
 {
 	// Room-related (10~19)
@@ -12,3 +14,4 @@ enum class Protocol : int
 	ROOM_STATE_PATCH = 15,
 	ROOM_DATA_SCHEMA = 16,
 };
+}

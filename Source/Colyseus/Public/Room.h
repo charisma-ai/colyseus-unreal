@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 
+#include <sstream>
+
 #pragma push_macro("check")
 #undef check
 
@@ -41,7 +43,7 @@ public:
 		{
 			if (bConsented)
 			{
-				unsigned char bytes[1] = {(unsigned char) Protocol::LEAVE_ROOM};
+				unsigned char bytes[1] = {(unsigned char) Colyseus::Protocol::LEAVE_ROOM};
 				ConnectionInstance->Send(bytes, sizeof(bytes));
 			}
 			else
@@ -60,7 +62,7 @@ public:
 
 	inline void Send(unsigned char Type)
 	{
-		unsigned char Message[2] = {(unsigned char) Protocol::ROOM_DATA, Type};
+		unsigned char Message[2] = {(unsigned char) Colyseus::Protocol::ROOM_DATA, Type};
 		ConnectionInstance->Send(Message, sizeof(Message));
 	}
 
@@ -73,7 +75,7 @@ public:
 		size_t EncodedLength = Encoded.length();
 
 		unsigned char* BytesToSend = new unsigned char[EncodedLength + 2];
-		BytesToSend[0] = (unsigned char) Protocol::ROOM_DATA;
+		BytesToSend[0] = (unsigned char) Colyseus::Protocol::ROOM_DATA;
 		BytesToSend[1] = Type;
 		FMemory::Memcpy(BytesToSend + 2, Encoded.c_str(), EncodedLength);
 
@@ -84,13 +86,13 @@ public:
 
 	void Send(const FString& Type)
 	{
-		const char* TypeBytes = TCHAR_TO_UTF8(*Type);
-		size_t TypeLength = strlen(TypeBytes);
+		FTCHARToUTF8 TypeBytes(*Type);
+		size_t TypeLength = TypeBytes.Length();
 
 		unsigned char* BytesToSend = new unsigned char[2 + TypeLength];
-		BytesToSend[0] = (unsigned char) Protocol::ROOM_DATA;
+		BytesToSend[0] = (unsigned char) Colyseus::Protocol::ROOM_DATA;
 		BytesToSend[1] = Type.Len() | 0xa0;
-		FMemory::Memcpy(BytesToSend + 2, TypeBytes, TypeLength);
+		FMemory::Memcpy(BytesToSend + 2, (const char*) TypeBytes.Get(), TypeLength);
 
 		ConnectionInstance->Send(BytesToSend, 2 + TypeLength);
 
@@ -100,8 +102,8 @@ public:
 	template <typename T>
 	void Send(const FString& Type, T Message)
 	{
-		const char* TypeBytes = TCHAR_TO_UTF8(*Type);
-		size_t TypeLength = strlen(TypeBytes);
+		FTCHARToUTF8 TypeBytes(*Type);
+		size_t TypeLength = TypeBytes.Length();
 
 		std::stringstream PackingStream;
 		msgpack::pack(PackingStream, Message);
@@ -109,9 +111,9 @@ public:
 		size_t EncodedLength = Encoded.length();
 
 		unsigned char* BytesToSend = new unsigned char[2 + TypeLength + EncodedLength];
-		BytesToSend[0] = (unsigned char) Protocol::ROOM_DATA;
+		BytesToSend[0] = (unsigned char) Colyseus::Protocol::ROOM_DATA;
 		BytesToSend[1] = Type.Len() | 0xa0;
-		FMemory::Memcpy(BytesToSend + 2, TypeBytes, TypeLength);
+		FMemory::Memcpy(BytesToSend + 2, (const char*) TypeBytes.Get(), TypeLength);
 		FMemory::Memcpy(BytesToSend + 2 + TypeLength, Encoded.c_str(), EncodedLength);
 
 		ConnectionInstance->Send(BytesToSend, 2 + TypeLength + EncodedLength);
@@ -191,9 +193,9 @@ protected:
 
 		unsigned char Code = Bytes[Iterator->offset++];
 
-		switch ((Protocol) Code)
+		switch ((Colyseus::Protocol) Code)
 		{
-			case Protocol::JOIN_ROOM:
+			case Colyseus::Protocol::JOIN_ROOM:
 			{
 #ifdef COLYSEUS_DEBUG
 				std::cout << "Colyseus.Room: JOIN_ROOM" << std::endl;
@@ -213,11 +215,11 @@ protected:
 					OnJoin();
 				}
 
-				unsigned char Message[1] = {(int) Protocol::JOIN_ROOM};
+				unsigned char Message[1] = {(int) Colyseus::Protocol::JOIN_ROOM};
 				ConnectionInstance->Send(Message, sizeof(Message));
 				break;
 			}
-			case Protocol::JOIN_ERROR:
+			case Colyseus::Protocol::JOIN_ERROR:
 			{
 #ifdef COLYSEUS_DEBUG
 				std::cout << "Colyseus.Room: ERROR" << std::endl;
@@ -231,7 +233,7 @@ protected:
 				}
 				break;
 			}
-			case Protocol::LEAVE_ROOM:
+			case Colyseus::Protocol::LEAVE_ROOM:
 			{
 #ifdef COLYSEUS_DEBUG
 				std::cout << "Colyseus.Room: LEAVE_ROOM" << std::endl;
@@ -239,7 +241,7 @@ protected:
 				Leave();
 				break;
 			}
-			case Protocol::ROOM_DATA:
+			case Colyseus::Protocol::ROOM_DATA:
 			{
 #ifdef COLYSEUS_DEBUG
 				std::cout << "Colyseus.Room: ROOM_DATA" << std::endl;
@@ -279,7 +281,7 @@ protected:
 
 				break;
 			}
-			case Protocol::ROOM_STATE:
+			case Colyseus::Protocol::ROOM_STATE:
 			{
 #ifdef COLYSEUS_DEBUG
 				std::cout << "Colyseus.Room: ROOM_STATE" << std::endl;
@@ -287,7 +289,7 @@ protected:
 				SetState(Bytes, Iterator->offset, Size);
 				break;
 			}
-			case Protocol::ROOM_STATE_PATCH:
+			case Colyseus::Protocol::ROOM_STATE_PATCH:
 			{
 #ifdef COLYSEUS_DEBUG
 				std::cout << "Colyseus.Room: ROOM_STATE_PATCH" << std::endl;

@@ -17,12 +17,17 @@ namespace UnrealBuildTool.Rules
                 PublicDefinitions.Add("MSGPACK_USE_CPP03=1");
             }
 
+            if (Target.Platform == UnrealTargetPlatform.Mac)
+            {
+                PublicDefinitions.Add("MSGPACK_DISABLE_LEGACY_NIL=1");
+            }
+
             PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
             bEnableExceptions = true;
 
             PublicIncludePaths.AddRange(
                 new string[] {
-					Path.Combine(ModuleDirectory, "Public"),
+                    Path.Combine(ModuleDirectory, "Public"),
                     Path.Combine(ThirdPartyPath, "json/include"),
                     Path.Combine(ThirdPartyPath, "msgpack/include"),
                     // ... add public include paths required here ...
@@ -32,7 +37,7 @@ namespace UnrealBuildTool.Rules
 
             PrivateIncludePaths.AddRange(
                 new string[] {
-					Path.Combine(ModuleDirectory, "Private"),
+                    Path.Combine(ModuleDirectory, "Private"),
                     // ... add other private include paths required here ...
                 }
                 );
