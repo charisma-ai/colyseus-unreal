@@ -21,6 +21,8 @@ namespace UnrealBuildTool.Rules
             {
                 PublicDefinitions.Add("MSGPACK_DISABLE_LEGACY_NIL=1");
             }
+            
+            PublicDefinitions.Add("MSGPACK_NO_BOOST=1");
 
             PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
             bEnableExceptions = true;
