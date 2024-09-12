@@ -13,9 +13,7 @@
 THIRD_PARTY_INCLUDES_START
 #pragma push_macro("check")
 #undef check
-#include "Windows/PreWindowsApi.h"
 #include <msgpack.hpp>
-#include "Windows/PostWindowsApi.h"
 #pragma pop_macro("check")
 THIRD_PARTY_INCLUDES_END
 

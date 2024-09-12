@@ -1,5 +1,3 @@
-#pragma once
-
 #include "ColyseusUtils.h"
 
 std::string FStringToStdString(const FString& UEString)
