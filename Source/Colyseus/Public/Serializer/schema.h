@@ -396,7 +396,8 @@ class Schema
     std::function<void()> onRemove;
 
     Schema() {}
-
+	virtual ~Schema() = default;
+	
     template <typename T>
     inline void decodeArrayPrimitive(ArraySchema<T> &array, int index, unsigned const char bytes[], Iterator *it,
                               T (*decoder)(unsigned const char bytes[], Iterator *it) ) {

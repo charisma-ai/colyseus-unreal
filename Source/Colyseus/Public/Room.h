@@ -74,14 +74,12 @@ public:
 		std::string Encoded = PackingStream.str();
 		size_t EncodedLength = Encoded.length();
 
-		unsigned char* BytesToSend = new unsigned char[EncodedLength + 2];
-		BytesToSend[0] = (unsigned char) Colyseus::Protocol::ROOM_DATA;
-		BytesToSend[1] = Type;
-		FMemory::Memcpy(BytesToSend + 2, Encoded.c_str(), EncodedLength);
-
-		ConnectionInstance->Send(BytesToSend, EncodedLength + 2);
-
-		delete[] BytesToSend;
+		TArray<uint8> BytesToSend;
+		BytesToSend.Reserve(2 + EncodedLength);
+		BytesToSend.Add((uint8)Colyseus::Protocol::ROOM_DATA);
+		BytesToSend.Add((uint8)Type);
+		BytesToSend.Append((const uint8*)Encoded.c_str(), EncodedLength);
+		ConnectionInstance->Send(BytesToSend.GetData(), BytesToSend.Num());
 	}
 
 	void Send(const FString& Type)
@@ -89,14 +87,13 @@ public:
 		FTCHARToUTF8 TypeBytes(*Type);
 		size_t TypeLength = TypeBytes.Length();
 
-		unsigned char* BytesToSend = new unsigned char[2 + TypeLength];
-		BytesToSend[0] = (unsigned char) Colyseus::Protocol::ROOM_DATA;
-		BytesToSend[1] = Type.Len() | 0xa0;
-		FMemory::Memcpy(BytesToSend + 2, (const char*) TypeBytes.Get(), TypeLength);
+		TArray<uint8> BytesToSend;
+		BytesToSend.Reserve(2 + TypeLength);
+		BytesToSend.Add((uint8)Colyseus::Protocol::ROOM_DATA);
+		BytesToSend.Add(Type.Len() | 0xa0);
+		BytesToSend.Append((const uint8*)TypeBytes.Get(), TypeLength);
+		ConnectionInstance->Send(BytesToSend.GetData(), BytesToSend.Num());
 
-		ConnectionInstance->Send(BytesToSend, 2 + TypeLength);
-
-		delete[] BytesToSend;
 	}
 
 	template <typename T>
@@ -110,15 +107,13 @@ public:
 		std::string Encoded = PackingStream.str();
 		size_t EncodedLength = Encoded.length();
 
-		unsigned char* BytesToSend = new unsigned char[2 + TypeLength + EncodedLength];
-		BytesToSend[0] = (unsigned char) Colyseus::Protocol::ROOM_DATA;
-		BytesToSend[1] = Type.Len() | 0xa0;
-		FMemory::Memcpy(BytesToSend + 2, (const char*) TypeBytes.Get(), TypeLength);
-		FMemory::Memcpy(BytesToSend + 2 + TypeLength, Encoded.c_str(), EncodedLength);
-
-		ConnectionInstance->Send(BytesToSend, 2 + TypeLength + EncodedLength);
-
-		delete[] BytesToSend;
+		TArray<uint8> BytesToSend;
+		BytesToSend.Reserve(2 + TypeLength + EncodedLength);
+		BytesToSend.Add((uint8) Colyseus::Protocol::ROOM_DATA);
+		BytesToSend.Add(Type.Len() | 0xa0);
+		BytesToSend.Append((const uint8*)TypeBytes.Get(), TypeLength);
+		BytesToSend.Append((const uint8*)Encoded.c_str(), EncodedLength);
+		ConnectionInstance->Send(BytesToSend.GetData(), BytesToSend.Num());
 	}
 
 	inline Room<S>* OnMessage(const int Type, const TFunction<void(const msgpack::object&)>& Callback)
