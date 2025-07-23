@@ -24,7 +24,18 @@ class MatchMakeError {
 };
 
 class Client {
-  public: FString Endpoint;
+  public:
+    ~Client() {
+      // Cancel all pending requests
+      for (auto & Request: PendingRequests) {
+        if (Request.IsValid()) {
+          Request -> CancelRequest();
+        }
+      }
+      PendingRequests.Empty();
+    }
+
+  FString Endpoint;
 
   Client(const FString & Endpoint): Endpoint(Endpoint) {}
 
@@ -68,83 +79,90 @@ class Client {
     }, Callback);
   }
 
-  private: template < typename S >
-    void CreateMatchMakeRequest(const FString & Method,
-      const FString & RoomName,
-        const JoinOptions & Options,
-          TFunction < void(TSharedPtr < MatchMakeError > , TSharedPtr < Room < S >> ) > Callback) {
-      FHttpModule * HttpModule = & FHttpModule::Get();
-      TSharedRef < IHttpRequest, ESPMode::ThreadSafe > HttpRequest = HttpModule -> CreateRequest();
+  private: TArray < TSharedPtr < IHttpRequest >> PendingRequests;
 
-      HttpRequest -> SetURL(this -> Endpoint.Replace(TEXT("ws"), TEXT("http")) + "/matchmake/" + Method + "/" + RoomName);
-      HttpRequest -> SetVerb("POST");
+  template < typename S >
+  void CreateMatchMakeRequest(const FString & Method,
+    const FString & RoomName,
+      const JoinOptions & Options,
+        TFunction < void(TSharedPtr < MatchMakeError > , TSharedPtr < Room < S >> ) > Callback) {
+    FHttpModule * HttpModule = & FHttpModule::Get();
+    TSharedRef < IHttpRequest, ESPMode::ThreadSafe > HttpRequest = HttpModule -> CreateRequest();
 
-      FString Body = StdStringToFString(Options.dump());
-      if (Body == "null") {
-        Body = "{}";
-      }
-      HttpRequest -> SetContentAsString(Body);
+    HttpRequest -> SetURL(this -> Endpoint.Replace(TEXT("ws"), TEXT("http")) + "/matchmake/" + Method + "/" + RoomName);
+    HttpRequest -> SetVerb("POST");
 
-      HttpRequest -> SetHeader("Accept", "application/json");
-      HttpRequest -> SetHeader("Content-Type", "application/json");
-
-      HttpRequest -> OnProcessRequestComplete().BindLambda(
-        [this, RoomName, Callback](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful) {
-          if (!bWasSuccessful || !Response.IsValid()) {
-            TSharedPtr < MatchMakeError > Error(new MatchMakeError(0, "HttpRequest => no/invalid response"));
-            Callback(Error, nullptr);
-            return;
-          }
-
-          if (!EHttpResponseCodes::IsOk(Response -> GetResponseCode())) {
-            TSharedPtr < MatchMakeError > Error(new MatchMakeError((int) Response -> GetResponseCode(), TEXT("Server Error")));
-            Callback(Error, nullptr);
-            return;
-          }
-
-          FString Data = Response -> GetContentAsString();
-          nlohmann::json json;
-          try {
-            json = nlohmann::json::parse(FStringToStdString(Data));
-          } catch (const std::exception & e) {
-            TSharedPtr < MatchMakeError > Error(new MatchMakeError(0, FString::Printf(TEXT("JSON parse error: %s"), UTF8_TO_TCHAR(e.what()))));
-            Callback(Error, nullptr);
-            return;
-          }
-          // Server responded with error.
-          if (json["error"].is_string()) {
-            int Code = json["code"].get < int > ();
-            FString Message = StdStringToFString(json["error"].get < std::string > ());
-
-            TSharedPtr < MatchMakeError > Error(new MatchMakeError(Code, Message));
-            Callback(Error, nullptr);
-            return;
-          }
-
-          TSharedPtr < Room < S >> RoomInstance(new Room < S > (RoomName));
-          RoomInstance -> Id = StdStringToFString(json["room"]["roomId"].get < std::string > ());
-          RoomInstance -> SessionId = StdStringToFString(json["sessionId"].get < std::string > ());
-
-          FString ProcessId = StdStringToFString(json["room"]["processId"].get < std::string > ());
-
-          RoomInstance -> OnError = [RoomInstance, Callback](const int & Code,
-            const FString & Message) {
-            RoomInstance -> OnJoin = nullptr;
-            TSharedPtr < MatchMakeError > Error(new MatchMakeError(Code, Message));
-            Callback(Error, nullptr);
-            RoomInstance -> OnError = nullptr;
-          };
-
-          RoomInstance -> OnJoin = [RoomInstance, Callback]() {
-            RoomInstance -> OnError = nullptr;
-            Callback(nullptr, RoomInstance);
-            RoomInstance -> OnJoin = nullptr;
-          };
-
-          RoomInstance -> Connect(
-            this -> Endpoint + "/" + ProcessId + "/" + RoomInstance -> Id + "?sessionId=" + RoomInstance -> SessionId);
-        });
-
-      HttpRequest -> ProcessRequest();
+    FString Body = StdStringToFString(Options.dump());
+    if (Body == "null") {
+      Body = "{}";
     }
+    HttpRequest -> SetContentAsString(Body);
+
+    HttpRequest -> SetHeader("Accept", "application/json");
+    HttpRequest -> SetHeader("Content-Type", "application/json");
+
+    PendingRequests.Add(HttpRequest);
+
+    HttpRequest -> OnProcessRequestComplete().BindLambda(
+      [this, RoomName, Callback, HttpRequest](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful) {
+
+        this -> PendingRequests.Remove(HttpRequest);
+
+        if (!bWasSuccessful || !Response.IsValid()) {
+          TSharedPtr < MatchMakeError > Error(new MatchMakeError(0, "HttpRequest => no/invalid response"));
+          Callback(Error, nullptr);
+          return;
+        }
+
+        if (!EHttpResponseCodes::IsOk(Response -> GetResponseCode())) {
+          TSharedPtr < MatchMakeError > Error(new MatchMakeError((int) Response -> GetResponseCode(), TEXT("Server Error")));
+          Callback(Error, nullptr);
+          return;
+        }
+
+        FString Data = Response -> GetContentAsString();
+        nlohmann::json json;
+        try {
+          json = nlohmann::json::parse(FStringToStdString(Data));
+        } catch (const std::exception & e) {
+          TSharedPtr < MatchMakeError > Error(new MatchMakeError(0, FString::Printf(TEXT("JSON parse error: %s"), UTF8_TO_TCHAR(e.what()))));
+          Callback(Error, nullptr);
+          return;
+        }
+        // Server responded with error.
+        if (json["error"].is_string()) {
+          int Code = json["code"].get < int > ();
+          FString Message = StdStringToFString(json["error"].get < std::string > ());
+
+          TSharedPtr < MatchMakeError > Error(new MatchMakeError(Code, Message));
+          Callback(Error, nullptr);
+          return;
+        }
+
+        TSharedPtr < Room < S >> RoomInstance(new Room < S > (RoomName));
+        RoomInstance -> Id = StdStringToFString(json["room"]["roomId"].get < std::string > ());
+        RoomInstance -> SessionId = StdStringToFString(json["sessionId"].get < std::string > ());
+
+        FString ProcessId = StdStringToFString(json["room"]["processId"].get < std::string > ());
+
+        RoomInstance -> OnError = [RoomInstance, Callback](const int & Code,
+          const FString & Message) {
+          RoomInstance -> OnJoin = nullptr;
+          TSharedPtr < MatchMakeError > Error(new MatchMakeError(Code, Message));
+          Callback(Error, nullptr);
+          RoomInstance -> OnError = nullptr;
+        };
+
+        RoomInstance -> OnJoin = [RoomInstance, Callback]() {
+          RoomInstance -> OnError = nullptr;
+          Callback(nullptr, RoomInstance);
+          RoomInstance -> OnJoin = nullptr;
+        };
+
+        RoomInstance -> Connect(
+          this -> Endpoint + "/" + ProcessId + "/" + RoomInstance -> Id + "?sessionId=" + RoomInstance -> SessionId);
+      });
+
+    HttpRequest -> ProcessRequest();
+  }
 };
